@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+html lang="en"
+    head
+        meta charset="UTF-8"/
+        meta name="viewport" content="width=device-width, initial-scale=1.0"/
+        title MatSida - Home
+        link rel="stylesheet" href="/css/style.css"/
+    body 
+        header 
+            h1 
+                a id="rubrik" href="/" Matapp!
+        nav
+            a href="/" Hitta recept
+            a href="/saved" Sparat
+            - if session[:name]
+                a href="/clear_session" Logga ut 
+            - else
+                a href="/login" Logga in 
+            
+        main 
+            ==yield    
+        footer 
+            ul 
+                li 
+                    p Här kan det säkert stå massa intressanta grejer
+                li 
+                    p Typ nått sånthär fint kanske
+                li 
+                    p Hej
