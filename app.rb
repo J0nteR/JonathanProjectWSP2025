@@ -11,8 +11,14 @@ get('/') do
 end
 
 get('/saved') do
+  db = SQLite3::Database.new("db/project2025.db")
+  db.results_as_hash = true #Få svar i strukturen [{},{},{}]
+
+  @data = db.execute("SELECT * FROM employees")
   slim :saved
 end
+
+
 
 get('/login') do
   slim :login

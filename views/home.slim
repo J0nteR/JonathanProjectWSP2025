@@ -5,5 +5,10 @@ div class="container_home"
             p kött
             p pasta 
             p osv 
-    article class="art"
-        p här ska alla recepten vara, aka stor flexbox
+    article.art
+        - @data.first(15).each do |recipe|
+            article.recipe-card
+                .info
+                    label.title = "#{recipe['title']}"
+                    label.description = "#{recipe['description']}"
+                    label.time_needed = "#{recipe['time_needed']}"
