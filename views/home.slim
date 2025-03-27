@@ -6,9 +6,4 @@ div class="container_home"
             p pasta 
             p osv 
     article.art
-        - @data.first(15).each do |recipe|
-            article.recipe-card
-                .info
-                    label.title = "#{recipe['title']}"
-                    label.description = "#{recipe['description']}"
-                    label.time_needed = "#{recipe['time_needed']}"
+
