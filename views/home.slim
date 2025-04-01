@@ -5,5 +5,12 @@ div class="container_home"
             p kött
             p pasta 
             p osv 
-    article.art
+    article.art 
+        - @data.each do |recept|
+            .user-card 
+                a href="/recipe/#{recept['id']}" 
+                    .info
+                        label.title = "#{recept['title']}"
+                        label.description = "#{recept['description']}"
+
 

@@ -62,6 +62,27 @@ aside{
 
 }
 
+.user-card{
+    color: gray;
+    box-shadow: 0px 2px 12px 0px rgba(0,0,0,0.42);
+    margin: 20px;
+    padding: 35px;
+    width: 500px;
+    display: grid;
+    grid-template-columns: autol;
+    background-color: #fff;
+}
+
+.info{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    border-left: 1px solid lightgray;
+}
+
+label{
+    margin: 5px 20px 5px 0;
+}
 
 ul{
     list-style-type: none;
