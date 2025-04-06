@@ -1,0 +1,47 @@
+h1 Lägg till ett nytt recept
+
+- if @not_logged_in
+  p Du måste vara <a href="/login">inloggad</a> för att skapa ett recept.
+- elsif @errors && @errors.any?
+  .error-message
+    h2 Fel:
+    ul
+      - @errors.each do |error|
+        li = error
+
+form method="post" action="/add_recipe" id="add-recipe-form"
+  label for="title" Titel:
+  input type="text" id="title" name="title" 
+  br
+
+  label for="description" Beskrivning:
+  textarea id="description" name="description" 
+  br
+
+  label for="time_needed" Tid att laga (minuter):
+  input type="number" id="time_needed" name="time_needed" 
+  br
+
+  label for="portions" Antal portioner:
+  input type="number" id="portions" name="portions" 
+  br
+
+  h2 Instruktioner
+  #instructions-container
+    .instruction-input
+      label for="instruction1" Steg 1:
+      textarea id="instruction1" name="instructions[]"
+  button type="button" id="add-instruction" Lägg till steg
+
+  h2 Ingredienser
+  #ingredients-container
+    .ingredient-input
+      label for="ingredient_name1" Ingrediensnamn:
+      input type="text" id="ingredient_name1" name="ingredient_names[]"
+      label for="quantity1" Mängd:
+      input type="number" id="quantity1" name="quantities[]"
+      label for="unit1" Enhet:
+      input type="text" id="unit1" name="units[]"
+  button type="button" id="add-ingredient" Lägg till ingrediens
+
+  input type="submit" value="Lägg till recept" id="submit-button"

@@ -11,8 +11,8 @@ html lang="en"
                 a id="rubrik" href="/" Matapp!
         nav
             a href="/" Hitta recept
-            a href="/saved" Sparat
-            - if session[:name]
+            a href="/saved" Dina recept
+            - if session[:user_id]
                 a href="/clear_session" Logga ut 
             - else
                 a href="/login" Logga in 
@@ -27,3 +27,5 @@ html lang="en"
                     p Typ nått sånthär fint kanske
                 li 
                     p Hej
+    script src="/js/main.js"
+

@@ -1,0 +1,22 @@
+h1 Skapa ett konto
+
+form action="/signup" method="post"
+  label for="username" Användarnamn:
+  input type="text" id="username" name="username" required
+  - if @signup_error&.include?("Användarnamn krävs.")
+    .error-message = "Användarnamn krävs."
+  br
+
+  label for="password" Lösenord:
+  input type="password" id="password" name="password" required
+  - if @signup_error&.include?("Lösenord krävs.")
+    .error-message = "Lösenord krävs."
+  br
+
+  label for="password_confirmation" Bekräfta lösenord:
+  input type="password" id="password_confirmation" name="password_confirmation" required
+  - if @signup_error&.include?("Lösenorden matchar inte.")
+    .error-message = "Lösenorden matchar inte."
+  br
+
+  input type="submit" value="Skapa konto"

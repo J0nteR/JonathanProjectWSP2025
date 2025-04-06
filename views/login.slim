@@ -1,22 +1,13 @@
-- if session[:name] == "" || session[:password] == "" 
-    
-    #hej 
-        h3 Du måste ha både namn och lösenord!
+h3 Vänligen logga in!
 
-    form action="/login" method="post"
-        input name="username" placeholder="enter username" type="text"/
-        input name="password" placeholder="enter password" type="password"/
-        input type="submit" value="Logga in"
-- elsif session[:name] != nil && session[:password] != nil 
-    h2 Tack för att du loggade in #{session[:name]}
+- if @login_error
+  .error-message
+    h3 = @login_error
 
-    h3 Ditt lösenord är: #{session[:password]}
-- elsif session[:name] == nil && session[:password] == nil 
-    h3 Vänligen logga in!
+form action="/login" method="post"
+  input name="username" placeholder="enter username" type="text" 
+  input name="password" placeholder="enter password" type="password"
+  input type="submit" value="Logga in"
 
-    form action="/login" method="post"
-        input name="username" placeholder="enter username" type="text"/
-        input name="password" placeholder="enter password" type="password"/
-        input type="submit" value="Logga in"
-- else 
-    h3 Något gick fel
+a href="/signup"
+    h3 Skapa konto
