@@ -1,1 +1,25 @@
-/ måste ha med recept-id (och ev user-id) för att hämta receptet och permisions! 
+- recipe = @receptdata[0] #varför ligger den så??!
+#receptcontainer
+  .receptinfo
+    h1 = recipe["title"]
+
+    p Beskrivning: #{recipe["description"]}
+    p Tid att laga: #{recipe["time_needed"]} minuter
+    p Portioner: #{recipe["portions"]}
+  .praktiskt
+    .instruktioner 
+      h2 Gör såhär:
+      ol 
+        - @receptinstruktioner.each do |instruktion|
+          li = "#{instruktion['description']}"
+
+    .ingredienser
+      h2 Ingredienser:
+      ul 
+        - if @receptingredienser.any?
+          - @receptingredienser.each do |ingrediens|
+            li 
+              = "#{ingrediens['name']} - #{ingrediens['quantity']} #{ingrediens['unit']}"
+        - else
+          li Det saknas ingredienser
+

@@ -19,9 +19,23 @@ get('/recipe/:nummer') do
   db = SQLite3::Database.new("db/project2025.db")
   db.results_as_hash = true
 
-  @data2 = db.execute("SELECT * FROM recipes WHERE id = #{@receptid}")
-
-  slim :saved
+  @receptdata = db.execute("SELECT * FROM recipes WHERE id = ?", [@receptid])
+  @receptinstruktioner = db.execute("SELECT * FROM instructions WHERE recipe_id = ? ORDER BY step_num ASC", [@receptid])
+  @receptingredienser = db.execute(
+    "SELECT
+        ingredients.name,
+        relations.quantity,
+        ingredients.unit
+    FROM
+        recipes
+    JOIN
+        relations ON recipes.id = relations.recipe_id
+    JOIN
+        ingredients ON relations.ingredient_id = ingredients.id
+    WHERE
+        recipes.id = ?", [@receptid]
+  )
+  slim :recipe
 end
 
 get('/saved') do
@@ -37,7 +51,7 @@ end
 
 get('/clear_session') do
   session.clear
-  slim(:home)
+  redirect('/')
 end
 
 post('/login') do

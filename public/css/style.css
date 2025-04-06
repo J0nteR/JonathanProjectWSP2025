@@ -42,22 +42,9 @@ footer{
 
 .container_home{
     height: 100%;
-    display: grid;
-    grid-template-areas:
-    'as at';
-    grid-template-columns: 20% 80%;
-
-
-
-}
-
-aside{
-    grid-area: as;
-    background-color: rgba(78, 129, 173, 0.401);
 }
 
 .art{
-    grid-area: at;
     background-color: rgba(177, 172, 46, 0.401);
 
 }
@@ -104,4 +91,40 @@ a:hover{
 
 #rubrik{
     font-size: 2rem;
+}
+
+#receptcontainer{
+    display: grid;
+    grid-template-areas: 
+    'ri'
+    'pr';
+    margin: 1rem;
+}
+
+.receptinfo{
+    grid-area: ri;
+}
+.praktiskt{
+    grid-area: pr;
+    display: grid;
+    grid-template-areas: 
+    'ins ing';
+    grid-template-columns: 50% 50%;
+    margin: 1rem;
+    
+}
+
+.instruktioner{
+    grid-area: ins;
+    padding: 1rem;
+
+}
+
+.ingredienser{
+    grid-area: ing;
+    padding: 1rem;
+
+}
+ol li{
+    margin: 1rem;
 }
