@@ -1,15 +1,20 @@
-div class="container_home" 
-  - if !@login_required # Dölj knappen om användaren inte behöver logga in
-    .createnew 
-      a href="/create" 
+div class="container_home"
+  - if !@login_required
+    .createnew
+      a href="/create"
         h2 Skapa nytt recept
-  article.art 
+  article.art
     - if @login_required
-      h3 För att kunna se dina sparade recept måste du <a href="/login">logga in</a>. 
+      h3 För att kunna se dina sparade recept måste du <a href="/login">logga in</a>.
     - else
       - @dinarecept.each do |recept|
-        .user-card 
-          a href="/recipe/#{recept['id']}" 
+        .user-card
+          a href="/recipe/#{recept['id']}"
             .info
               label.title = "#{recept['title']}"
               label.description = "#{recept['description']}"
+          - if @current_user_id == recept['author_id'] || session[:is_admin] == 1
+            .edit-delete-links
+              a href="/edit_recipe/#{recept['id']}" Redigera
+              |
+              a href="#" onclick="confirmDelete(#{recept['id']})" Ta bort

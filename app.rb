@@ -49,9 +49,13 @@ end
 
 get('/saved') do
   if @current_user_id
-    @dinarecept = @db.execute("SELECT * FROM recipes WHERE author_id = ?", [@current_user_id])
+    if session[:is_admin] == 1 # Kontrollera om användaren är admin
+      @dinarecept = @db.execute("SELECT *, author_id FROM recipes") # Hämta alla recept för admin
+    else
+      @dinarecept = @db.execute("SELECT *, author_id FROM recipes WHERE author_id = ?", [@current_user_id]) # Hämta användarens recept
+    end
   else
-    @dinarecept = []  # Returnera en tom array om användaren inte är inloggad
+    @dinarecept = []
     @login_required = true
   end
   slim :saved
@@ -123,7 +127,117 @@ post('/add_recipe') do
       end
     end
 
-    redirect '/'
+    redirect('/saved')
+  end
+end
+
+
+get('/edit_recipe/:id') do
+  @recept_id = params[:id].to_i
+  @recept = @db.execute("SELECT * FROM recipes WHERE id = ?", [@recept_id]).first
+  @instruktioner = @db.execute("SELECT * FROM instructions WHERE recipe_id = ?", [@recept_id])
+  @ingredienser = @db.execute(
+    "SELECT
+        ingredients.name,
+        relations.quantity,
+        ingredients.unit
+    FROM
+        recipes
+    JOIN
+        relations ON recipes.id = relations.recipe_id
+    JOIN
+        ingredients ON relations.ingredient_id = ingredients.id
+    WHERE
+        recipes.id = ?", [@recept_id]
+  )
+
+  if @recept
+    slim(:edit)
+  else
+    # Hantera fallet om receptet inte hittas (t.ex. visa ett felmeddelande)
+    @error = "Receptet hittades inte."
+    slim(:error)
+  end
+end
+
+post('/update_recipe/:id') do
+  @recept_id = params[:id].to_i
+  @recept = @db.execute("SELECT * FROM recipes WHERE id = ?", [@recept_id]).first
+
+  # Validering
+  errors = [].tap do |e|
+    e << "Titel är obligatoriskt." if params[:title].nil? || params[:title].empty?
+    e << "Beskrivning är obligatoriskt." if params[:description].nil? || params[:description].empty?
+    e << "Tid att laga är obligatoriskt." if params[:time_needed].nil? || params[:time_needed].empty?
+    e << "Antal portioner är obligatoriskt." if params[:portions].nil? || params[:portions].empty?
+    e << "Minst en instruktion krävs." if params[:instructions].nil? || params[:instructions].empty?
+    e << "Minst en ingrediens krävs." if params[:ingredient_names].nil? || params[:ingredient_names].empty?
+  end
+
+  if errors.any?
+    @errors = errors
+    slim :edit
+  else
+    if session[:is_admin] == 1 || @recept['author_id'] == @current_user_id # Admin eller författare
+      @db.execute(
+        "UPDATE recipes SET title = ?, description = ?, time_needed = ?, portions = ? WHERE id = ?",
+        [params[:title], params[:description], params[:time_needed], params[:portions], @recept_id]
+      )
+
+      # Uppdatera instruktioner
+      @db.execute("DELETE FROM instructions WHERE recipe_id = ?", [@recept_id])
+      if params[:instructions]
+        step_number = 1
+        params[:instructions].each do |instruction|
+          @db.execute(
+            "INSERT INTO instructions (recipe_id, step_num, description) VALUES (?, ?, ?)",
+            [@recept_id, step_number, instruction]
+          )
+          step_number += 1
+        end
+      end
+
+      # Uppdatera ingredienser
+      @db.execute("DELETE FROM relations WHERE recipe_id = ?", [@recept_id])
+      if params[:ingredient_names] && params[:quantities] && params[:units]
+        params[:ingredient_names].each_with_index do |name, index|
+          ingredient = @db.execute("SELECT id FROM ingredients WHERE name = ?", [name]).first
+          if ingredient
+            ingredient_id = ingredient["id"]
+          else
+            @db.execute("INSERT INTO ingredients (name, unit) VALUES (?, ?)", [name, params[:units][index]])
+            ingredient_id = @db.last_insert_row_id
+          end
+
+          quantity = params[:quantities][index].nil? || params[:quantities][index].empty? ? 0 : params[:quantities][index].to_i
+          @db.execute(
+            "INSERT INTO relations (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)",
+            [@recept_id, ingredient_id, quantity]
+          )
+        end
+      end
+
+      redirect "/recipe/#{@recept_id}"
+    else
+      @error = "Du har inte behörighet att redigera detta recept."
+      slim :error
+    end
+  end
+end
+
+post('/delete_recipe/:id') do
+  @recept_id = params[:id].to_i
+  @recept = @db.execute("SELECT author_id FROM recipes WHERE id = ?", [@recept_id]).first
+
+  if session[:is_admin] == 1 || (@recept && @recept['author_id'] == @current_user_id) # Admin eller författare
+    @db.execute("DELETE FROM recipes WHERE id = ?", [@recept_id])
+    @db.execute("DELETE FROM instructions WHERE recipe_id = ?", [@recept_id])
+    @db.execute("DELETE FROM relations WHERE recipe_id = ?", [@recept_id])
+
+    redirect '/saved'
+  else
+    @error = "Du har inte behörighet att ta bort detta recept."
+    slim :error
   end
 end
 

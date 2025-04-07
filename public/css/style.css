@@ -58,7 +58,7 @@ footer{
 .info{
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     border-left: 1px solid lightgray;
 }
 
@@ -142,4 +142,9 @@ ol li{
 
 .error-message ul{
     text-align: start;
+}
+
+.edit-delete-links{
+    display: flex;
+    justify-content: space-around;
 }

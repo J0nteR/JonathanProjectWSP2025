@@ -1,0 +1,48 @@
+h1 Redigera recept
+
+- if @errors && @errors.any?
+  #errors
+    h2 Fel:
+    ul
+      - @errors.each do |error|
+        li = error
+
+form method="post" action="/update_recipe/#{@recept['id']}" id="edit-recipe-form"
+  label for="title" Titel:
+  input type="text" id="title" name="title" value="#{ @recept['title'] }" 
+  br
+  
+  label for="description" Beskrivning:
+  textarea id="description" name="description" required= "#{ @recept['description'] }"
+    = @recept['description']
+  br
+
+  label for="time_needed" Tid att laga (minuter):
+  input type="number" id="time_needed" name="time_needed" value="#{ @recept['time_needed'] }" 
+  br
+
+  label for="portions" Antal portioner:
+  input type="number" id="portions" name="portions" value="#{ @recept['portions'] }" 
+  br
+
+  h2 Instruktioner
+  #instructions-container
+    - @instruktioner.each_with_index do |instruktion, index|
+      .instruction-input
+        label for="instruction#{index + 1}" Steg #{index + 1}:
+        textarea id="instruction#{index + 1}" name="instructions[]" = instruktion['description']
+  button type="button" id="add-instruction" Lägg till steg
+
+  h2 Ingredienser
+  #ingredients-container
+    - @ingredienser.each_with_index do |ingrediens, index|
+      .ingredient-input
+        label for="ingredient_name#{index + 1}" Ingrediensnamn:
+        input type="text" id="ingredient_name#{index + 1}" name="ingredient_names[]" value="#{ingrediens['name']}"
+        label for="quantity#{index + 1}" Mängd:
+        input type="number" id="quantity#{index + 1}" name="quantities[]" value="#{ingrediens['quantity']}"
+        label for="unit#{index + 1}" Enhet:
+        input type="text" id="unit#{index + 1}" name="units[]" value="#{ingrediens['unit']}"
+  button type="button" id="add-ingredient" Lägg till ingrediens
+
+  input type="submit" value="Spara ändringar" id="submit-button"
