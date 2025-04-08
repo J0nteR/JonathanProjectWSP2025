@@ -3,7 +3,8 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
-require_relative './model/model'
+require_relative 'C:\Users\Jonathan Rönnäs\Desktop\Skol-prog\JonathanProjectWSP2025\model.rb' #ÄNDRAAAA
+
 
 enable :sessions
 
