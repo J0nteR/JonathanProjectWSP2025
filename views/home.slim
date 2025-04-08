@@ -2,7 +2,7 @@ div class="container_home"
     article.art 
         - @data.each do |recept|
             .user-card 
-                a href="/recipe/#{recept['id']}" 
+                a href="/recipes/#{recept['id']}" 
                     .info
                         label.title = "#{recept['title']}"
                         label.description = "#{recept['description']}"

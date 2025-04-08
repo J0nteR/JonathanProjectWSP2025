@@ -9,7 +9,7 @@ div class="container_home"
     - else
       - @dinarecept.each do |recept|
         .user-card
-          a href="/recipe/#{recept['id']}"
+          a href="/recipes/#{recept['id']}"
             .info
               label.title = "#{recept['title']}"
               label.description = "#{recept['description']}"

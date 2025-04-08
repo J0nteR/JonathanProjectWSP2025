@@ -1,25 +1,26 @@
-- recipe = @receptdata[0] #varför ligger den så??!
-#receptcontainer
-  .receptinfo
-    h1 = recipe["title"]
-
-    p Beskrivning: #{recipe["description"]}
-    p Tid att laga: #{recipe["time_needed"]} minuter
-    p Portioner: #{recipe["portions"]}
-  .praktiskt
-    .instruktioner 
-      h2 Gör såhär:
-      ol 
-        - @receptinstruktioner.each do |instruktion|
-          li = "#{instruktion['description']}"
-
+- if @receptdata
+  #rubrik = @receptdata['title']
+  #receptcontainer
+   .receptinfo
+    h2 = @receptdata['title']
+    p = @receptdata['description']
+    p Tid att laga: #{@receptdata['time_needed']} minuter
+    p Portioner: #{@receptdata['portions']}
+   .praktiskt
+    .instruktioner
+     h3 Instruktioner
+     ol
+      - @receptinstruktioner.each do |instruktion|
+       li = instruktion['description']
     .ingredienser
-      h2 Ingredienser:
-      ul 
-        - if @receptingredienser.any?
-          - @receptingredienser.each do |ingrediens|
-            li 
-              = "#{ingrediens['name']} - #{ingrediens['quantity']} #{ingrediens['unit']}"
-        - else
-          li Det saknas ingredienser
-
+     h3 Ingredienser
+     ul
+      - @receptingredienser.each do |ingrediens|
+       li 
+        = ingrediens['quantity']
+        '
+        = ingrediens['unit']
+        '
+        = ingrediens['name']
+- else
+  p Receptet hittades inte.
