@@ -3,7 +3,7 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
-require_relative 'model'
+require_relative './model/model'
 
 enable :sessions
 
