@@ -1,7 +1,7 @@
 require 'sqlite3'
 require 'bcrypt'
 
-# @summary Hanterar databasanslutningen.
+# Hanterar databasanslutningen.
 def db_connection
   db = SQLite3::Database.new("db/project2025.db")
   db.results_as_hash = true
@@ -10,7 +10,7 @@ end
 
 # @!group Recept
 
-# @summary Hämtar alla recept från databasen.
+# Hämtar alla recept från databasen.
 # @return [Array<Hash>] En array av receptdata.
 def get_all_recipes
   db = db_connection
@@ -19,7 +19,7 @@ def get_all_recipes
   return recipes
 end
 
-# @summary Hämtar ett specifikt recept från databasen.
+# Hämtar ett specifikt recept från databasen.
 # @param id [Integer] Receptets ID.
 # @return [Hash] Receptdata.
 def get_recipe_by_id(id)
@@ -29,7 +29,7 @@ def get_recipe_by_id(id)
   return recipe
 end
 
-# @summary Hämtar instruktioner för ett recept.
+# Hämtar instruktioner för ett recept.
 # @param recipe_id [Integer] Receptets ID.
 # @return [Array<Hash>] En array av instruktioner.
 def get_instructions_for_recipe(recipe_id)
@@ -40,7 +40,7 @@ def get_instructions_for_recipe(recipe_id)
   return instructions
 end
 
-# @summary Hämtar ingredienser för ett recept.
+# Hämtar ingredienser för ett recept.
 # @param recipe_id [Integer] Receptets ID.
 # @return [Array<Hash>] En array av ingredienser.
 def get_ingredients_for_recipe(recipe_id)
@@ -64,7 +64,7 @@ def get_ingredients_for_recipe(recipe_id)
   return ingredients
 end
 
-# @summary Skapar ett nytt recept i databasen.
+# Skapar ett nytt recept i databasen.
 # @param author_id [Integer] ID för receptets författare.
 # @param title [String] Receptets titel.
 # @param description [String] Receptets beskrivning.
@@ -82,7 +82,7 @@ def create_recipe(author_id, title, description, time_needed, portions)
   return recipe_id
 end
 
-# @summary Uppdaterar ett recept i databasen.
+# Uppdaterar ett recept i databasen.
 # @param id [Integer] ID för receptet som ska uppdateras.
 # @param title [String] Uppdaterad titel.
 # @param description [String] Uppdaterad beskrivning.
@@ -98,7 +98,7 @@ def update_recipe(id, title, description, time_needed, portions)
   db.close
 end
 
-# @summary Tar bort ett recept från databasen.
+# Tar bort ett recept från databasen.
 # @param id [Integer] ID för receptet som ska tas bort.
 # @return [void]
 def delete_recipe(id)
@@ -111,7 +111,7 @@ end
 
 # @!group Instruktioner
 
-# @summary Skapar en ny instruktion för ett recept.
+# Skapar en ny instruktion för ett recept.
 # @param recipe_id [Integer] ID för receptet.
 # @param step_num [Integer] Stegnummer.
 # @param description [String] Instruktionens beskrivning.
@@ -127,7 +127,7 @@ end
 
 # @!group Ingredienser
 
-# @summary Skapar en ny ingrediens i databasen (om den inte redan finns) och skapar en relation till receptet.
+# Skapar en ny ingrediens i databasen (om den inte redan finns) och skapar en relation till receptet.
 # @param recipe_id [Integer] ID för receptet.
 # @param name [String] Ingrediensens namn.
 # @param unit [String] Ingrediensens enhet.
@@ -152,7 +152,7 @@ end
 
 # @!group Användare
 
-# @summary Hämtar en användare från databasen baserat på användarnamn.
+# Hämtar en användare från databasen baserat på användarnamn.
 # @param username [String] Användarnamnet.
 # @return [Hash, nil] Användardata eller nil om användaren inte hittas.
 def get_user_by_username(username)
@@ -162,7 +162,7 @@ def get_user_by_username(username)
   return user
 end
 
-# @summary Skapar en ny användare i databasen.
+# Skapar en ny användare i databasen.
 # @param username [String] Användarnamnet.
 # @param password_hash [String] Hashat lösenord.
 # @param is_admin [Integer] Adminstatus (0 eller 1).
@@ -178,7 +178,7 @@ end
 
 # @!group Validering
 
-# @summary Validerar användarregistreringsdata.
+# Validerar användarregistreringsdata.
 # @param params [Hash] Parametrar från registreringsformuläret.
 # @return [Array<String>] En array av felmeddelanden (tom om ingen fel).
 def validate_user_registration(params)
@@ -189,7 +189,7 @@ def validate_user_registration(params)
   return errors
 end
 
-# @summary Validerar receptdata.
+# Validerar receptdata.
 # @param params [Hash] Parametrar från receptformuläret.
 # @return [Array<String>] En array av felmeddelanden (tom om ingen fel).
 def validate_recipe_data(params)
@@ -204,7 +204,7 @@ def validate_recipe_data(params)
   return errors
 end
 
-# @summary Hämtar receptets författare.
+# Hämtar receptets författare.
 # @param id [Integer] ID för receptet.
 # @return [Hash, nil] Receptets författare eller nil om receptet inte hittas.
 def get_recipe_author(id)
@@ -214,7 +214,7 @@ def get_recipe_author(id)
   return author
 end
 
-# @summary Tar bort instruktioner för ett recept.
+# Tar bort instruktioner för ett recept.
 # @param recipe_id [Integer] ID för receptet.
 # @return [void]
 def delete_instructions_for_recipe(recipe_id)
@@ -223,7 +223,7 @@ def delete_instructions_for_recipe(recipe_id)
   db.close
 end
 
-# @summary Tar bort relationer för ett recept.
+# Tar bort relationer för ett recept.
 # @param recipe_id [Integer] ID för receptet.
 # @return [void]
 def delete_relations_for_recipe(recipe_id)
@@ -232,7 +232,7 @@ def delete_relations_for_recipe(recipe_id)
   db.close
 end
 
-# @summary Hämtar recept från en viss författare
+# Hämtar recept från en viss författare
 # @param author_id [Integer] ID för receptets författare.
 # @return [Array<Hash>] En array av receptdata.
 def get_recipes_by_author(author_id)

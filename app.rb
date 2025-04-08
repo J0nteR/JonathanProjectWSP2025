@@ -17,14 +17,14 @@ end
 
 # @!group Generella Routes
 
-# @summary Visar startsidan med alla recept.
+#  Visar startsidan med alla recept.
 # @return [void]
 get '/' do
   @data = get_all_recipes()
   slim :home
 end
 
-# @summary Visar detaljer för ett specifikt recept.
+#  Visar detaljer för ett specifikt recept.
 # @param id [Integer] Receptets ID.
 # @return [void]
 get '/recipes/:id' do
@@ -37,13 +37,13 @@ end
 
 # @!group Användarhantering
 
-# @summary Visar inloggningssidan.
+#  Visar inloggningssidan.
 # @return [void]
 get '/login' do
   slim :login
 end
 
-# @summary Hanterar inloggning av användare.
+#  Hanterar inloggning av användare.
 # @param username [String] Användarnamnet.
 # @param password [String] Användarens lösenord.
 # @return [void] Omdirigerar till '/saved' vid lyckad inloggning, annars visar inloggningssidan med felmeddelande.
@@ -61,13 +61,13 @@ post '/login' do
   end
 end
 
-# @summary Visar registreringssidan.
+#  Visar registreringssidan.
 # @return [void]
 get '/signup' do
   slim :signup
 end
 
-# @summary Hanterar registrering av ny användare.
+#  Hanterar registrering av ny användare.
 # @param username [String] Det önskade användarnamnet.
 # @param password [String] Det önskade lösenordet.
 # @param password_confirmation [String] Lösenordet igen för bekräftelse.
@@ -109,7 +109,7 @@ post '/signup' do
   end
 end
 
-# @summary Loggar ut användaren och rensar sessionen.
+#  Loggar ut användaren och rensar sessionen.
 # @return [void] Omdirigerar till startsidan.
 get '/clear_session' do
   session.clear
@@ -118,7 +118,7 @@ end
 
 # @!group Recepthantering
 
-# @summary Visar sidan för att visa sparade recept.
+#  Visar sidan för att visa sparade recept.
 # @return [void] Visar en lista över sparade recept för den inloggade användaren, eller ett meddelande om att användaren måste logga in.
 get '/saved' do
   if @current_user_id
@@ -134,13 +134,13 @@ get '/saved' do
   slim :saved
 end
 
-# @summary Visar sidan för att skapa ett nytt recept.
+#  Visar sidan för att skapa ett nytt recept.
 # @return [void]
 get '/create' do
   slim :create
 end
 
-# @summary Hanterar skapandet av ett nytt recept.
+#  Hanterar skapandet av ett nytt recept.
 # @param title [String] Receptets titel.
 # @param description [String] Receptets beskrivning.
 # @param time_needed [Integer] Tid det tar att laga receptet (i minuter).
@@ -187,7 +187,7 @@ post '/recipes' do
   end
 end
 
-# @summary Visar sidan för att redigera ett recept.
+#  Visar sidan för att redigera ett recept.
 # @param id [Integer] ID för receptet som ska redigeras.
 # @return [void] Visar redigeringsformuläret med förifylld data, eller ett felmeddelande om receptet inte hittas.
 get '/recipes/:id/edit' do
@@ -204,7 +204,7 @@ get '/recipes/:id/edit' do
   end
 end
 
-# @summary Hanterar uppdatering av ett recept.
+#  Hanterar uppdatering av ett recept.
 # @param id [Integer] ID för receptet som ska uppdateras.
 # @param title [String] Den uppdaterade titeln för receptet.
 # @param description [String] Den uppdaterade beskrivningen för receptet.
@@ -255,7 +255,7 @@ put '/recipes/:id' do
   end
 end
 
-# @summary Hanterar borttagning av ett recept.
+#  Hanterar borttagning av ett recept.
 # @param id [Integer] ID för receptet som ska tas bort.
 # @return [void] Omdirigerar till '/saved' vid lyckad borttagning, annars visar ett felmeddelande.
 delete '/recipes/:id' do
