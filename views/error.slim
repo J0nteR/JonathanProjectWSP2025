@@ -1,6 +1,8 @@
 h1 Ett fel har uppstått
 
-- if @error
+- if @login_error
+  p = @login_error
+- elsif @error
   p = @error
 - else
   p Ett oväntat fel har uppstått.

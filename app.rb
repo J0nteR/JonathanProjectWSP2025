@@ -3,10 +3,13 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
-require_relative 'C:\Users\Jonathan Rönnäs\Desktop\Skol-prog\JonathanProjectWSP2025\model.rb' #ÄNDRAAAA
-
+require_relative 'C:\Users\Jonathan Rönnäs\Desktop\Skol-prog\JonathanProjectWSP2025\model'
 
 enable :sessions
+
+MAX_LOGIN_ATTEMPTS = 5
+COOL_DOWN_PERIOD = 60
+$login_attempts = {}
 
 before do
   if session[:user_id]
@@ -44,21 +47,65 @@ get '/login' do
   slim :login
 end
 
-#  Hanterar inloggning av användare.
+#  Visar errorsidan.
+# @return [void]
+get '/error' do
+  @login_error = "För många misslyckade försök. Vänligen vänta #{COOL_DOWN_PERIOD} sekunder."
+  slim :error
+end
+
+#  Hanterar inloggning av användare med cool-down och loggning.
 # @param username [String] Användarnamnet.
 # @param password [String] Användarens lösenord.
 # @return [void] Omdirigerar till '/saved' vid lyckad inloggning, annars visar inloggningssidan med felmeddelande.
 post '/login' do
-  user = get_user_by_username(params[:username])
+  username = params[:username]
+  password = params[:password]
 
-  if user && BCrypt::Password.new(user["password"]) == params[:password]
-    session[:user_id] = user["id"]
-    session[:username] = user["username"]
-    session[:is_admin] = user["is_admin"]
-    redirect '/saved'
-  else
-    @login_error = "Felaktigt användarnamn eller lösenord."
-    slim :login
+  begin
+    # Kontrollera cool-down
+    if cool_down_active?(username)
+      redirect '/error'
+      return
+    end
+
+    user = get_user_by_username(username)
+
+    if user 
+      if BCrypt::Password.new(user["password"]) == password
+        # Inloggning lyckades
+        session[:user_id] = user["id"]
+        session[:username] = user["username"]
+        session[:is_admin] = user["is_admin"]
+        log_login(username, true)
+        reset_login_attempts(username)
+        redirect '/saved'
+      end
+    else
+      @login_error = "Felaktigt användarnamn eller lösenord."
+      log_login(username, false)
+      increment_login_attempts(username)
+      slim :login
+    end
+
+  rescue SQLite3::Exception => e
+    # Databasfel
+    puts "Databasfel vid inloggning: #{e.message}"
+    @login_error = "Ett databasfel uppstod. Vänligen försök igen."
+    log_login(username, false)
+    redirect '/error'
+  rescue BCrypt::Errors::InvalidHash => e
+    # BCrypt-fel
+    puts "BCrypt-fel: #{e.message}"
+    @login_error = "Ett fel uppstod vid verifiering av lösenordet. Vänligen försök igen."
+    log_login(username, false)
+    redirect '/error'
+  rescue => e
+    # Övriga fel
+    puts "Oväntat fel vid inloggning: #{e.message}"
+    @login_error = "Ett oväntat fel uppstod. Vänligen försök igen."
+    log_login(username, false)
+    redirect '/error'
   end
 end
 
@@ -151,7 +198,7 @@ end
 # @param quantities [Array<Integer>] En array av mängder för varje ingrediens.
 # @param units [Array<String>] En array av enheter för varje ingrediens.
 # @return [void] Omdirigerar till '/saved' vid lyckat skapande, annars visar sidan för att skapa recept med felmeddelanden.
-post '/recipes' do
+post '/add_recipe' do
   # Validering
   errors = validate_recipe_data(params)
 
@@ -219,8 +266,6 @@ end
 put '/recipes/:id' do
   @recept_id = params[:id].to_i
   @recept = get_recipe_by_id(@recept_id)
-
-  # Validering
   errors = validate_recipe_data(params)
 
   if errors.any?

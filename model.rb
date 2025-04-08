@@ -1,7 +1,13 @@
 require 'sqlite3'
 require 'bcrypt'
 
+# Cool-down-inställningar (flyttade från app.rb)
+MAX_LOGIN_ATTEMPTS = 5
+COOL_DOWN_PERIOD = 60 # Sekunder
+$login_attempts = {} # Lagrar inloggningsförsök
+
 # Hanterar databasanslutningen.
+# @return [SQLite3::Database] En SQLite3::Database-instans.
 def db_connection
   db = SQLite3::Database.new("db/project2025.db")
   db.results_as_hash = true
@@ -21,7 +27,7 @@ end
 
 # Hämtar ett specifikt recept från databasen.
 # @param id [Integer] Receptets ID.
-# @return [Hash] Receptdata.
+# @return [Hash, nil] Receptdata eller nil om receptet inte hittas.
 def get_recipe_by_id(id)
   db = db_connection
   recipe = db.execute("SELECT * FROM recipes WHERE id = ?", [id]).first
@@ -240,4 +246,45 @@ def get_recipes_by_author(author_id)
   recipes = db.execute("SELECT *, author_id FROM recipes WHERE author_id = ?", [author_id])
   db.close
   return recipes
+end
+
+# @!group Loggning
+
+# Loggar ett inloggningsförsök i databasen.
+# @param username [String] Användarnamnet.
+# @param success [Boolean] Om inloggningen lyckades (true) eller misslyckades (false).
+# @return [void]
+def log_login(username, success)
+  db = db_connection
+  db.execute(
+    "INSERT INTO login_logs (username, timestamp, success) VALUES (?, ?, ?)",
+    [username, Time.now.strftime("%Y-%m-%d %H:%M:%S"), success ? 1 : 0]
+  )
+  db.close
+end
+
+# @!group Inloggningskontroll
+
+# Kontrollerar om cool-down är aktivt för en användare.
+# @param username [String] Användarnamnet.
+# @return [Boolean] `true` om cool-down är aktivt, annars `false`.
+def cool_down_active?(username)
+  $login_attempts[username] && $login_attempts[username][:attempts] >= MAX_LOGIN_ATTEMPTS &&
+    Time.now < $login_attempts[username][:last_attempt] + COOL_DOWN_PERIOD
+end
+
+# Ökar antalet inloggningsförsök för en användare.
+# @param username [String] Användarnamnet.
+# @return [void]
+def increment_login_attempts(username)
+  $login_attempts[username] ||= { attempts: 0, last_attempt: Time.now }
+  $login_attempts[username][:attempts] += 1
+  $login_attempts[username][:last_attempt] = Time.now
+end
+
+# Återställer antalet inloggningsförsök för en användare.
+# @param username [String] Användarnamnet.
+# @return [void]
+def reset_login_attempts(username)
+  $login_attempts.delete(username)
 end

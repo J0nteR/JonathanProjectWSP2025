@@ -31,7 +31,7 @@ document.getElementById('add-ingredient').addEventListener('click', function () 
 
 function confirmDelete(receptId) {
   if (confirm('Är du säker på att du vill ta bort detta recept?')) {
-    fetch('/delete_recipe/' + receptId, { method: 'POST' })
+    fetch('/recipes/' + receptId, { method: 'DELETE' })
       .then(response => {
         if (response.ok) {
           window.location.href = '/saved'; // Omdirigera efter borttagning

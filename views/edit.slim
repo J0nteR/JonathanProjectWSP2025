@@ -7,7 +7,7 @@ h1 Redigera recept
       - @errors.each do |error|
         li = error
 
-form method="post" action="/update_recipe/#{@recept['id']}" id="edit-recipe-form"
+form method="post" action="/recipes/#{@recept['id']}" id="edit-recipe-form"
   label for="title" Titel:
   input type="text" id="title" name="title" value="#{ @recept['title'] }" 
   br
