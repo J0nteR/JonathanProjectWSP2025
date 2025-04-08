@@ -3,13 +3,11 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
+require_relative 'model'
 
 enable :sessions
 
 before do
-  @db = SQLite3::Database.new("db/project2025.db")
-  @db.results_as_hash = true
-
   if session[:user_id]
     @current_user_id = session[:user_id]
   else
@@ -17,42 +15,117 @@ before do
   end
 end
 
-after do
-  @db.close if @db  #  Stäng anslutningen efter varje begäran
-end
+# @!group Generella Routes
 
-get('/') do
-  @data = @db.execute("SELECT * FROM recipes")
+# @summary Visar startsidan med alla recept.
+# @return [void]
+get '/' do
+  @data = get_all_recipes()
   slim :home
 end
 
-get('/recipe/:nummer') do
-  @receptid = params[:nummer].to_i
-  @receptdata = @db.execute("SELECT * FROM recipes WHERE id = ?", [@receptid])
-  @receptinstruktioner = @db.execute("SELECT * FROM instructions WHERE recipe_id = ? ORDER BY step_num ASC", [@receptid])
-  @receptingredienser = @db.execute(
-    "SELECT
-        ingredients.name,
-        relations.quantity,
-        ingredients.unit
-    FROM
-        recipes
-    JOIN
-        relations ON recipes.id = relations.recipe_id
-    JOIN
-        ingredients ON relations.ingredient_id = ingredients.id
-    WHERE
-        recipes.id = ?", [@receptid]
-  )
+# @summary Visar detaljer för ett specifikt recept.
+# @param id [Integer] Receptets ID.
+# @return [void]
+get '/recipes/:id' do
+  @recept_id = params[:id].to_i
+  @receptdata = get_recipe_by_id(@recept_id)
+  @receptinstruktioner = get_instructions_for_recipe(@recept_id)
+  @receptingredienser = get_ingredients_for_recipe(@recept_id)
   slim :recipe
 end
 
-get('/saved') do
+# @!group Användarhantering
+
+# @summary Visar inloggningssidan.
+# @return [void]
+get '/login' do
+  slim :login
+end
+
+# @summary Hanterar inloggning av användare.
+# @param username [String] Användarnamnet.
+# @param password [String] Användarens lösenord.
+# @return [void] Omdirigerar till '/saved' vid lyckad inloggning, annars visar inloggningssidan med felmeddelande.
+post '/login' do
+  user = get_user_by_username(params[:username])
+
+  if user && BCrypt::Password.new(user["password"]) == params[:password]
+    session[:user_id] = user["id"]
+    session[:username] = user["username"]
+    session[:is_admin] = user["is_admin"]
+    redirect '/saved'
+  else
+    @login_error = "Felaktigt användarnamn eller lösenord."
+    slim :login
+  end
+end
+
+# @summary Visar registreringssidan.
+# @return [void]
+get '/signup' do
+  slim :signup
+end
+
+# @summary Hanterar registrering av ny användare.
+# @param username [String] Det önskade användarnamnet.
+# @param password [String] Det önskade lösenordet.
+# @param password_confirmation [String] Lösenordet igen för bekräftelse.
+# @return [void] Omdirigerar till '/login' vid lyckad registrering, annars visar registreringssidan med felmeddelanden.
+post '/signup' do
+  require 'bcrypt'
+
+  # Validering
+  errors = validate_user_registration(params)
+
+  if errors.any?
+    @signup_error = errors.join("<br>")
+    slim(:signup)
+  else
+    # Hasha lösenordet
+    password_hash = BCrypt::Password.create(params[:password])
+
+    begin
+      # Försök att skapa användaren
+      create_user(params[:username], password_hash, 0)
+      puts "Användare skapad. Omdirigerar till /login"
+      redirect '/login'
+    rescue SQLite3::ConstraintException => e
+      if e.message.include?("UNIQUE constraint failed: user.username")
+        @signup_error = "Användarnamnet är redan taget."
+      else
+        @signup_error = "Ett fel uppstod vid registreringen."
+      end
+      slim(:signup)
+    rescue SQLite3::Exception => e
+      puts "Databasfel vid registrering: #{e.message}"
+      @signup_error = "Ett databasfel uppstod."
+      slim(:signup)
+    rescue => e
+      puts "Oväntat fel vid registrering: #{e.message}"
+      @signup_error = "Ett oväntat fel uppstod."
+      slim(:signup)
+    end
+  end
+end
+
+# @summary Loggar ut användaren och rensar sessionen.
+# @return [void] Omdirigerar till startsidan.
+get '/clear_session' do
+  session.clear
+  redirect '/'
+end
+
+# @!group Recepthantering
+
+# @summary Visar sidan för att visa sparade recept.
+# @return [void] Visar en lista över sparade recept för den inloggade användaren, eller ett meddelande om att användaren måste logga in.
+get '/saved' do
   if @current_user_id
     if session[:is_admin] == 1 # Kontrollera om användaren är admin
-      @dinarecept = @db.execute("SELECT *, author_id FROM recipes") # Hämta alla recept för admin
+      @dinarecept = get_all_recipes()
     else
-      @dinarecept = @db.execute("SELECT *, author_id FROM recipes WHERE author_id = ?", [@current_user_id]) # Hämta användarens recept
+      @dinarecept = get_recipes_by_author(@current_user_id)
     end
   else
     @dinarecept = []
@@ -61,22 +134,25 @@ get('/saved') do
   slim :saved
 end
 
-
-
-get('/create') do
+# @summary Visar sidan för att skapa ett nytt recept.
+# @return [void]
+get '/create' do
   slim :create
 end
 
-post('/add_recipe') do
+# @summary Hanterar skapandet av ett nytt recept.
+# @param title [String] Receptets titel.
+# @param description [String] Receptets beskrivning.
+# @param time_needed [Integer] Tid det tar att laga receptet (i minuter).
+# @param portions [Integer] Antal portioner receptet ger.
+# @param instructions [Array<String>] En array av instruktioner för receptet.
+# @param ingredient_names [Array<String>] En array av ingrediensnamn.
+# @param quantities [Array<Integer>] En array av mängder för varje ingrediens.
+# @param units [Array<String>] En array av enheter för varje ingrediens.
+# @return [void] Omdirigerar till '/saved' vid lyckat skapande, annars visar sidan för att skapa recept med felmeddelanden.
+post '/recipes' do
   # Validering
-  errors = [].tap do |e|
-    e << "Titel är obligatoriskt." if params[:title].nil? || params[:title].empty?
-    e << "Beskrivning är obligatoriskt." if params[:description].nil? || params[:description].empty?
-    e << "Tid att laga är obligatoriskt." if params[:time_needed].nil? || params[:time_needed].empty?
-    e << "Antal portioner är obligatoriskt." if params[:portions].nil? || params[:portions].empty?
-    e << "Minst en instruktion krävs." if params[:instructions].nil? || params[:instructions].empty?
-    e << "Minst en ingrediens krävs." if params[:ingredient_names].nil? || params[:ingredient_names].empty?
-  end
+  errors = validate_recipe_data(params)
 
   if errors.any?
     @errors = errors
@@ -91,129 +167,83 @@ post('/add_recipe') do
       return
     end
 
-    @db.execute(
-      "INSERT INTO recipes (author_id, title, description, time_needed, portions) VALUES (?, ?, ?, ?, ?)",
-      [author_id, params[:title], params[:description], params[:time_needed], params[:portions]]
-    )
-
-    recipe_id = @db.last_insert_row_id
+    recipe_id = create_recipe(author_id, params[:title], params[:description], params[:time_needed], params[:portions])
 
     if params[:instructions]
       step_number = 1
       params[:instructions].each do |instruction|
-        @db.execute(
-          "INSERT INTO instructions (recipe_id, step_num, description) VALUES (?, ?, ?)",
-          [recipe_id, step_number, instruction]
-        )
+        create_instruction(recipe_id, step_number, instruction)
         step_number += 1
       end
     end
 
     if params[:ingredient_names] && params[:quantities] && params[:units]
       params[:ingredient_names].each_with_index do |name, index|
-        ingredient = @db.execute("SELECT id FROM ingredients WHERE name = ?", [name]).first
-        if ingredient
-          ingredient_id = ingredient["id"]
-        else
-          @db.execute("INSERT INTO ingredients (name, unit) VALUES (?, ?)", [name, params[:units][index]])
-          ingredient_id = @db.last_insert_row_id
-        end
-
-        quantity = params[:quantities][index].nil? || params[:quantities][index].empty? ? 0 : params[:quantities][index].to_i
-        @db.execute(
-          "INSERT INTO relations (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)",
-          [recipe_id, ingredient_id, quantity]
-        )
+        create_ingredient_relation(recipe_id, name, params[:units][index], params[:quantities][index].to_i)
       end
     end
 
-    redirect('/saved')
+    redirect '/saved'
   end
 end
 
-
-get('/edit_recipe/:id') do
+# @summary Visar sidan för att redigera ett recept.
+# @param id [Integer] ID för receptet som ska redigeras.
+# @return [void] Visar redigeringsformuläret med förifylld data, eller ett felmeddelande om receptet inte hittas.
+get '/recipes/:id/edit' do
   @recept_id = params[:id].to_i
-  @recept = @db.execute("SELECT * FROM recipes WHERE id = ?", [@recept_id]).first
-  @instruktioner = @db.execute("SELECT * FROM instructions WHERE recipe_id = ?", [@recept_id])
-  @ingredienser = @db.execute(
-    "SELECT
-        ingredients.name,
-        relations.quantity,
-        ingredients.unit
-    FROM
-        recipes
-    JOIN
-        relations ON recipes.id = relations.recipe_id
-    JOIN
-        ingredients ON relations.ingredient_id = ingredients.id
-    WHERE
-        recipes.id = ?", [@recept_id]
-  )
+  @recept = get_recipe_by_id(@recept_id)
+  @instruktioner = get_instructions_for_recipe(@recept_id)
+  @ingredienser = get_ingredients_for_recipe(@recept_id)
 
   if @recept
     slim(:edit)
   else
-    # Hantera fallet om receptet inte hittas (t.ex. visa ett felmeddelande)
     @error = "Receptet hittades inte."
     slim(:error)
   end
 end
 
-post('/update_recipe/:id') do
+# @summary Hanterar uppdatering av ett recept.
+# @param id [Integer] ID för receptet som ska uppdateras.
+# @param title [String] Den uppdaterade titeln för receptet.
+# @param description [String] Den uppdaterade beskrivningen för receptet.
+# @param time_needed [Integer] Den uppdaterade tillagningstiden.
+# @param portions [Integer] Det uppdaterade antalet portioner.
+# @param instructions [Array<String>] En array av uppdaterade instruktioner.
+# @param ingredient_names [Array<String>] En array av uppdaterade ingrediensnamn.
+# @param quantities [Array<Integer>] En array av uppdaterade mängder för ingredienser.
+# @param units [Array<String>] En array av uppdaterade enheter för ingredienser.
+# @return [void] Omdirigerar till receptdetaljsidan vid lyckad uppdatering, annars visar redigeringssidan med felmeddelanden.
+put '/recipes/:id' do
   @recept_id = params[:id].to_i
-  @recept = @db.execute("SELECT * FROM recipes WHERE id = ?", [@recept_id]).first
+  @recept = get_recipe_by_id(@recept_id)
 
   # Validering
-  errors = [].tap do |e|
-    e << "Titel är obligatoriskt." if params[:title].nil? || params[:title].empty?
-    e << "Beskrivning är obligatoriskt." if params[:description].nil? || params[:description].empty?
-    e << "Tid att laga är obligatoriskt." if params[:time_needed].nil? || params[:time_needed].empty?
-    e << "Antal portioner är obligatoriskt." if params[:portions].nil? || params[:portions].empty?
-    e << "Minst en instruktion krävs." if params[:instructions].nil? || params[:instructions].empty?
-    e << "Minst en ingrediens krävs." if params[:ingredient_names].nil? || params[:ingredient_names].empty?
-  end
+  errors = validate_recipe_data(params)
 
   if errors.any?
     @errors = errors
     slim :edit
   else
     if session[:is_admin] == 1 || @recept['author_id'] == @current_user_id # Admin eller författare
-      @db.execute(
-        "UPDATE recipes SET title = ?, description = ?, time_needed = ?, portions = ? WHERE id = ?",
-        [params[:title], params[:description], params[:time_needed], params[:portions], @recept_id]
-      )
+      update_recipe(@recept_id, params[:title], params[:description], params[:time_needed], params[:portions])
 
       # Uppdatera instruktioner
-      @db.execute("DELETE FROM instructions WHERE recipe_id = ?", [@recept_id])
+      delete_instructions_for_recipe(@recept_id)
       if params[:instructions]
         step_number = 1
         params[:instructions].each do |instruction|
-          @db.execute(
-            "INSERT INTO instructions (recipe_id, step_num, description) VALUES (?, ?, ?)",
-            [@recept_id, step_number, instruction]
-          )
+          create_instruction(@recept_id, step_number, instruction)
           step_number += 1
         end
       end
 
       # Uppdatera ingredienser
-      @db.execute("DELETE FROM relations WHERE recipe_id = ?", [@recept_id])
+      delete_relations_for_recipe(@recept_id)
       if params[:ingredient_names] && params[:quantities] && params[:units]
         params[:ingredient_names].each_with_index do |name, index|
-          ingredient = @db.execute("SELECT id FROM ingredients WHERE name = ?", [name]).first
-          if ingredient
-            ingredient_id = ingredient["id"]
-          else
-            @db.execute("INSERT INTO ingredients (name, unit) VALUES (?, ?)", [name, params[:units][index]])
-            ingredient_id = @db.last_insert_row_id
-          end
-
-          quantity = params[:quantities][index].nil? || params[:quantities][index].empty? ? 0 : params[:quantities][index].to_i
-          @db.execute(
-            "INSERT INTO relations (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)",
-            [@recept_id, ingredient_id, quantity]
-          )
+          create_ingredient_relation(@recept_id, name, params[:units][index], params[:quantities][index].to_i)
         end
       end
 
@@ -225,88 +255,19 @@ post('/update_recipe/:id') do
   end
 end
 
-post('/delete_recipe/:id') do
+# @summary Hanterar borttagning av ett recept.
+# @param id [Integer] ID för receptet som ska tas bort.
+# @return [void] Omdirigerar till '/saved' vid lyckad borttagning, annars visar ett felmeddelande.
+delete '/recipes/:id' do
   @recept_id = params[:id].to_i
-  @recept = @db.execute("SELECT author_id FROM recipes WHERE id = ?", [@recept_id]).first
+  @recept = get_recipe_author(@recept_id)
 
   if session[:is_admin] == 1 || (@recept && @recept['author_id'] == @current_user_id) # Admin eller författare
-    @db.execute("DELETE FROM recipes WHERE id = ?", [@recept_id])
-    @db.execute("DELETE FROM instructions WHERE recipe_id = ?", [@recept_id])
-    @db.execute("DELETE FROM relations WHERE recipe_id = ?", [@recept_id])
+    delete_recipe(@recept_id)
 
     redirect '/saved'
   else
     @error = "Du har inte behörighet att ta bort detta recept."
     slim :error
-  end
-end
-
-get('/login') do
-  slim :login
-end
-
-get('/clear_session') do
-  session.clear
-  redirect '/'
-end
-
-post '/login' do
-  user = @db.execute("SELECT id, username, password, is_admin FROM user WHERE username = ?", [params[:username]]).first
-
-  if user && BCrypt::Password.new(user["password"]) == params[:password]
-    session[:user_id] = user["id"]
-    session[:username] = user["username"]
-    session[:is_admin] = user["is_admin"]
-    redirect '/saved'
-  else
-    @login_error = "Felaktigt användarnamn eller lösenord."
-    slim :login
-  end
-end
-
-get '/signup' do
-  slim(:signup)
-end
-
-post '/signup' do
-  # Validering
-  errors = [].tap do |e|
-    e << "Användarnamn krävs." if params[:username].nil? || params[:username].empty?
-    e << "Lösenord krävs." if params[:password].nil? || params[:password].empty?
-    e << "Lösenorden matchar inte." if params[:password] != params[:password_confirmation]
-  end
-
-  if errors.any?
-    @signup_error = errors.join("<br>")
-    slim(:signup)
-  else
-    # Hasha lösenordet
-    password_hash = BCrypt::Password.create(params[:password])
-
-    begin
-      # Försök att skapa användaren
-      @db.execute(
-        "INSERT INTO user (username, password, is_admin) VALUES (?, ?, ?)",
-        [params[:username], password_hash, 0]
-      )
-      # Registreringen lyckades
-      puts "Användare skapad. Omdirigerar till /login"
-      redirect '/login'
-    rescue SQLite3::ConstraintException => e
-      if e.message.include?("UNIQUE constraint failed: user.username")
-        @signup_error = "Användarnamnet är redan taget."
-      else
-        @signup_error = "Ett fel uppstod vid registreringen."
-      end
-      slim(:signup) # Korrekt användning av slim
-    rescue SQLite3::Exception => e
-      puts "Databasfel vid registrering: #{e.message}"
-      @signup_error = "Ett databasfel uppstod."
-      slim(:signup) # Korrekt användning av slim
-    rescue => e
-      puts "Oväntat fel vid registrering: #{e.message}"
-      @signup_error = "Ett oväntat fel uppstod."
-      slim(:signup) # Korrekt användning av slim
-    end
   end
 end

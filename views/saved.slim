@@ -15,6 +15,6 @@ div class="container_home"
               label.description = "#{recept['description']}"
           - if @current_user_id == recept['author_id'] || session[:is_admin] == 1
             .edit-delete-links
-              a href="/edit_recipe/#{recept['id']}" Redigera
+              a href="/recipes/#{recept['id']}/edit" Redigera
               |
               a href="#" onclick="confirmDelete(#{recept['id']})" Ta bort
