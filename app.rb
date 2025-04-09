@@ -3,7 +3,7 @@ require 'slim'
 require 'sqlite3'
 require 'sinatra/reloader'
 require 'bcrypt'
-require_relative 'C:\Users\Jonathan Rönnäs\Desktop\Skol-prog\JonathanProjectWSP2025\model'
+require_relative 'model'
 
 enable :sessions
 
@@ -71,7 +71,7 @@ post '/login' do
 
     user = get_user_by_username(username)
 
-    if user 
+    if user
       if BCrypt::Password.new(user["password"]) == password
         # Inloggning lyckades
         session[:user_id] = user["id"]
@@ -293,7 +293,7 @@ put '/recipes/:id' do
         end
       end
 
-      redirect "/recipe/#{@recept_id}"
+      redirect "/recipes/#{@recept_id}"
     else
       @error = "Du har inte behörighet att redigera detta recept."
       slim :error

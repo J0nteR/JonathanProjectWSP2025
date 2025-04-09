@@ -8,6 +8,7 @@ h1 Redigera recept
         li = error
 
 form method="post" action="/recipes/#{@recept['id']}" id="edit-recipe-form"
+  input type="hidden" name="_method" value="PUT"
   label for="title" Titel:
   input type="text" id="title" name="title" value="#{ @recept['title'] }" 
   br
